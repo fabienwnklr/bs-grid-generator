@@ -5,6 +5,26 @@ import { onMounted } from "vue";
 import { debounce } from "./utils/time";
 import Popover from "bootstrap/js/dist/popover";
 
+function changeFormat(event: Event) {
+  const $target = event.target as HTMLAnchorElement;
+  const format = $target.dataset.format;
+  const $container = document.querySelector("#rendering") as HTMLElement;
+  if (format === "sm") {
+    $container.style.width = "576px";
+  } else if (format === "md") {
+    $container.style.width = "768px";
+  } else if (format === "lg") {
+    $container.style.width = "992px";
+  }
+
+  const $active = $target.parentElement?.parentElement?.querySelector('.active');
+  if ($active) {
+    $active.classList.remove("active");
+    $active.querySelector(".bi")?.remove();
+  }
+  $target.classList.add("active");
+  $target.appendChild(stringToHTMLNode(`<i class="bi bi-check-lg float-end"></i>`))
+}
 function changeTheme(this: any, _event: Event) {
   if (this.classList.contains("active")) {
     return;
@@ -89,7 +109,7 @@ function setupFormat() {
 }
 
 const $colTemplate = `
-<div tabindex="0" class="col border-start">
+<div tabindex="0" class="col">
       <p>Column</p>
       <p>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
@@ -154,11 +174,11 @@ function addRow() {
     const $params = `
     <a class="btn btn-primary btn-sm m-1 remove-row" type="button"><i class="bi bi-trash me-2"></i>Remove row</a>
     <a class="btn btn-primary btn-sm m-1 add-column" type="button"><i class="bi bi-plus me-2"></i>Add column</a>
-    <a class="btn btn-primary btn-sm m-1 remove-column" type="button"><i class="bi bi-trash me-2"></i>Remove one column</a>
+    <a class="btn btn-primary btn-sm m-1 remove-column" type="button"><i class="bi bi-trash me-2"></i>Remove column</a>
     `;
     const popover = Popover.getOrCreateInstance($col, {
       title:
-        'Row params<a href="#" class="btn btn-sm float-end btn-close" data-bs-dismiss="popover"></a>',
+        'Manage it <a href="#" class="btn btn-sm float-end btn-close" data-bs-dismiss="popover"></a>',
       trigger: "click",
       placement: "auto",
       content: $params,
@@ -175,11 +195,11 @@ function addRow() {
       });
       popover.tip.querySelector(".remove-column")?.addEventListener("click", () => {
         if ($row.querySelectorAll("[class^=col]").length > 1) {
-          $row
-            .querySelectorAll("[class^=col]")
-            .item($row.querySelectorAll("[class^=col]").length - 1)
-            .remove();
+          $col.remove();
+        } else {
+          $row.remove();
         }
+        popover.hide();
       });
       popover.tip.querySelector(".add-column")?.addEventListener("click", () => {
         const $col = stringToHTMLNode($colTemplate);
@@ -220,7 +240,7 @@ function addRow() {
   <div id="md" class="d-block d-md-none format-detector"></div>
   <div id="lg" class="d-block d-lg-none format-detector"></div>
   <div id="xl" class="d-block d-xl-none format-detector"></div>
-  <div class="d-flex flex-column h-100">
+  <div class="d-flex flex-column align-items-center">
     <div class="dropdown position-fixed bottom-0 end-0 mb-3 me-3 mode-toggle">
       <button
         class="btn btn-secondary py-2 dropdown-toggle d-flex align-items-center"
@@ -274,7 +294,7 @@ function addRow() {
     </div>
     <Navbar />
     <!-- Begin page content -->
-    <main class="flex-shrink-0 mt-3 overflow-auto">
+    <main class="container-fluid overflow-auto">
       <div class="d-flex mb-3 justify-content-between">
         <!-- <div
           class="btn-group btn-group-sm"
@@ -336,9 +356,25 @@ function addRow() {
             Device
           </button>
           <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-            <li><a class="dropdown-item" href="#">Desktop</a></li>
-            <li><a class="dropdown-item" href="#">Tablet</a></li>
-            <li><a class="dropdown-item" href="#">Phone</a></li>
+            <li>
+              <a
+                class="dropdown-item active"
+                href="#"
+                data-format="lg"
+                :onclick="changeFormat"
+                >Desktop <i class="bi bi-check-lg float-end"></i></a
+              >
+            </li>
+            <li>
+              <a class="dropdown-item" href="#" data-format="md" :onclick="changeFormat"
+                >Tablet</a
+              >
+            </li>
+            <li>
+              <a class="dropdown-item" href="#" data-format="sm" :onclick="changeFormat"
+                >Phone</a
+              >
+            </li>
           </ul>
         </div>
         <button v-on:click="addRow" id="add_row" class="btn btn-primary btn-sm">
@@ -386,7 +422,7 @@ function addRow() {
   --bs-popover-max-width: 500px;
 }
 main {
-  padding: 60px 15px 30vh;
+  padding: 80px 15px 100px;
 }
 .mode-toggle {
   z-index: 9999999;
@@ -408,5 +444,22 @@ main {
 .bs-container:last-child {
   border-bottom-left-radius: var(--bs-border-radius);
   border-bottom-right-radius: var(--bs-border-radius);
+}
+.bs-container .col:not(:first-of-type) {
+  border-left: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.bs-container .col:not(:last-of-type) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.bs-container .col:first-of-type {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.bs-container .col {
+  border-radius: inherit;
 }
 </style>

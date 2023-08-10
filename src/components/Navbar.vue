@@ -2,11 +2,11 @@
     <header>
         <nav class="navbar bg-body-tertiary fixed-top shadow">
             <div class="container-fluid">
-                <a class="navbar-brand" href="#">
-                    <img src="logo.svg" alt="Logo" width="30" height="24" class="d-inline-block align-text-top">
+                <div class="navbar-brand d-flex align-items-center">
+                    <img src="logo3.png" alt="Logo" width="40" class="d-inline-block align-text-top me-2">
                     Bootstrap grid generator
-                    <span id="format"></span>
-                </a>
+                    <span class="ms-1" id="format"></span>
+                </div>
                 <div>
                     <button class="btn-sm navbar-toggler" type="button" data-bs-toggle="offcanvas"
                         data-bs-target="#offcanvas" aria-controls="offcanvas" aria-expanded="false"
