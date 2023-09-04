@@ -6,24 +6,26 @@ import { debounce } from "./utils/time";
 import Popover from "bootstrap/js/dist/popover";
 
 function changeFormat(event: Event) {
+  const $container = document.querySelector("#rendering") as HTMLElement;
   const $target = event.target as HTMLAnchorElement;
   const format = $target.dataset.format;
-  const $container = document.querySelector("#rendering") as HTMLElement;
   if (format === "sm") {
     $container.style.width = "576px";
   } else if (format === "md") {
     $container.style.width = "768px";
   } else if (format === "lg") {
-    $container.style.width = "992px";
+    $container.style.width = "";
   }
 
-  const $active = $target.parentElement?.parentElement?.querySelector('.active');
+  const $active = $target.parentElement?.parentElement?.querySelector(".active");
   if ($active) {
     $active.classList.remove("active");
     $active.querySelector(".bi")?.remove();
   }
   $target.classList.add("active");
-  $target.appendChild(stringToHTMLNode(`<i class="bi bi-check-lg float-end"></i>`))
+  $target.appendChild(
+    stringToHTMLNode<HTMLElement>(`<i class="bi bi-check-lg float-end"></i>`)
+  );
 }
 function changeTheme(this: any, _event: Event) {
   if (this.classList.contains("active")) {
@@ -117,24 +119,25 @@ const $colTemplate = `
       </p>
     </div>`;
 const $rowTemplate = `
-    <div class="border row  cursor-pointer bs-container">
+    <div class="row border cursor-pointer bs-container">
       ${$colTemplate}
     </div>`;
 
-function stringToHTMLNode(string: string) {
+function stringToHTMLNode<T>(string: string): T {
   const parser = new DOMParser();
   const html = parser.parseFromString(string, "text/html");
-  const row = html.body.firstChild as HTMLElement;
+  const row = html.body.firstChild;
 
-  return row;
+  return row as T;
 }
 function createRow() {
-  const row = stringToHTMLNode($rowTemplate);
+  const row = stringToHTMLNode<HTMLDivElement>($rowTemplate);
   return row;
 }
 onMounted(() => {
   setupTheme();
   setupFormat();
+  showHTMLResult();
 
   document.querySelector(".btn-group")?.addEventListener("change", (event) => {
     const $container = document.getElementById("rendering");
@@ -145,6 +148,8 @@ onMounted(() => {
       $container.classList.add($radio.dataset.class || "");
     }
   });
+
+
 });
 window.onresize = debounce(setupFormat);
 window.onclick = function (event) {
@@ -160,6 +165,12 @@ window.onclick = function (event) {
   }
 };
 
+const $params = `
+    <a class="btn btn-primary btn-sm m-1 remove-row" type="button"><i class="bi bi-trash me-2"></i>Remove row</a>
+    <a class="btn btn-primary btn-sm m-1 add-column" type="button"><i class="bi bi-plus me-2"></i>Add column</a>
+    <a class="btn btn-primary btn-sm m-1 remove-column" type="button"><i class="bi bi-trash me-2"></i>Remove column</a>
+    `;
+
 function addRow() {
   const $container = document.getElementById("rendering");
 
@@ -171,11 +182,6 @@ function addRow() {
     const $row = createRow();
     $container.insertAdjacentElement("beforeend", $row);
     const $col = $row.querySelector(".col") as HTMLDivElement;
-    const $params = `
-    <a class="btn btn-primary btn-sm m-1 remove-row" type="button"><i class="bi bi-trash me-2"></i>Remove row</a>
-    <a class="btn btn-primary btn-sm m-1 add-column" type="button"><i class="bi bi-plus me-2"></i>Add column</a>
-    <a class="btn btn-primary btn-sm m-1 remove-column" type="button"><i class="bi bi-trash me-2"></i>Remove column</a>
-    `;
     const popover = Popover.getOrCreateInstance($col, {
       title:
         'Manage it <a href="#" class="btn btn-sm float-end btn-close" data-bs-dismiss="popover"></a>',
@@ -202,20 +208,7 @@ function addRow() {
         popover.hide();
       });
       popover.tip.querySelector(".add-column")?.addEventListener("click", () => {
-        const $col = stringToHTMLNode($colTemplate);
-        $row.insertAdjacentElement("beforeend", $col);
-        $col.addEventListener("focus", function (_event) {
-          document
-            .getElementById("rendering")
-            ?.querySelectorAll(".col")
-            .forEach((el) => {
-              el.classList.remove("selected");
-            });
-          $col.classList.add("selected");
-        });
-        $col.addEventListener("focusout", function (_event) {
-          $col.classList.remove("selected");
-        });
+        addCol($row);
       });
     });
     $col.addEventListener("focus", function (_event) {
@@ -231,6 +224,80 @@ function addRow() {
       $col.classList.remove("selected");
     });
   }
+}
+
+function addCol($row: HTMLDivElement) {
+  const $col = stringToHTMLNode<HTMLDivElement>($colTemplate);
+  $row.insertAdjacentElement("beforeend", $col);
+
+  const popover = Popover.getOrCreateInstance($col, {
+    title:
+      'Manage it <a href="#" class="btn btn-sm float-end btn-close" data-bs-dismiss="popover"></a>',
+    trigger: "click",
+    placement: "auto",
+    content: $params,
+    html: true,
+  });
+
+  $col.addEventListener("focus", function (_event) {
+    document
+      .getElementById("rendering")
+      ?.querySelectorAll(".col")
+      .forEach((el) => {
+        el.classList.remove("selected");
+      });
+    $col.classList.add("selected");
+  });
+  $col.addEventListener("focusout", function (_event) {
+    $col.classList.remove("selected");
+  });
+
+  $col.addEventListener("shown.bs.popover", () => {
+    popover.tip.querySelector(".btn-close")?.addEventListener("click", () => {
+      popover.hide();
+    });
+    popover.tip.querySelector(".remove-row")?.addEventListener("click", () => {
+      $row.remove();
+      popover.hide();
+    });
+    popover.tip.querySelector(".remove-column")?.addEventListener("click", () => {
+      if ($row.querySelectorAll("[class^=col]").length > 1) {
+        $col.remove();
+      } else {
+        $row.remove();
+      }
+      popover.hide();
+    });
+    popover.tip.querySelector(".add-column")?.addEventListener("click", () => {
+      addCol($row);
+    });
+  });
+}
+
+function showHTMLResult() {
+  const $showCode = document.querySelector("#show-code") as HTMLInputElement;
+
+  $showCode.addEventListener("change", function() {
+    const $container = document.querySelector("#rendering") as HTMLDivElement;
+    const $codeShower = document.querySelector("#code-shower") as HTMLDivElement;
+
+    if ($container) {
+      let html = $container.outerHTML;
+
+      html = html.replace(/ id="rendering"|border| border| border |border |cursor-pointer|cursor-pointer | cursor-pointer| cursor-pointer |bs-container| bs-container| bs-container |tabindex="0" /g, "");
+      html = html.replace(/(<p\b[^>]*>)[^<>]*(<\/p>)/gi, '');
+      $codeShower.innerHTML = "<textarea rows='40' readonly>" + html + "</textarea>";
+
+      if (this.checked) {
+        $container.style.display = 'none'
+        $codeShower.style.display = ''
+      } else {
+        $container.style.display = ''
+        $codeShower.style.display = 'none'
+      }
+
+    }
+  });
 }
 </script>
 
@@ -342,8 +409,8 @@ function addRow() {
           role="group"
           aria-label="Basic checkbox toggle button group"
         >
-          <input type="checkbox" class="btn-check" id="btncheck1" autocomplete="off" />
-          <label class="btn btn-outline-primary" for="btncheck1">Code</label>
+          <input type="checkbox" class="btn-check" id="show-code" autocomplete="off" />
+          <label class="btn btn-outline-primary" for="show-code">Code</label>
         </div>
         <div class="dropdown">
           <button
@@ -362,8 +429,8 @@ function addRow() {
                 href="#"
                 data-format="lg"
                 :onclick="changeFormat"
-                >Desktop <i class="bi bi-check-lg float-end"></i></a
-              >
+                >Desktop <i class="bi bi-check-lg float-end"></i
+              ></a>
             </li>
             <li>
               <a class="dropdown-item" href="#" data-format="md" :onclick="changeFormat"
@@ -411,6 +478,8 @@ function addRow() {
           </li>
         </ol>
       </div>
+
+      <div id="code-shower" class="container" style="display: none"></div>
     </main>
 
     <Footer />
@@ -461,5 +530,9 @@ main {
 
 .bs-container .col {
   border-radius: inherit;
+}
+
+#code-shower textarea {
+  width: 100%;
 }
 </style>
